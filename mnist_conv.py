@@ -1,23 +1,24 @@
+import argparse
+parser = argparse.ArgumentParser(description="Tweak hyper parameter for convnet")
+parser.add_argument('-l', dest='learning_rate', action='store', type=float, default=0.0001, help='define learning rate')
+parser.add_argument('-k', dest='keep_prob', action='store', type=float, default=0.5, help='define keep prob for dropout')
+parser.add_argument('-i', dest='iterations', action='store', type=int, default=1000, help='define number of iteration')
+parser.add_argument('-b', dest='batch_size', action='store', type=int, default=50,  help='define the batch size')
+args = parser.parse_args()
+
 import time
 start_time = time.time()
 
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 from Dbmanager import Dbmanager
-import argparse
+
 import tensorflow as tf
 import os
 
-parser = argparse.ArgumentParser(description="Tweak hyper parameter for convnet")
-parser.add_argument('-l', dest='learning_rate', action='store', type=float, default=0.0001, help='define learing rate')
-parser.add_argument('-k', dest='keep_prob', action='store', type=float, default=0.5, help='define keep prob for dropout')
-parser.add_argument('-i', dest='iterations', action='store', type=int, default=1000, help='define number of iteration')
-parser.add_argument('-b', dest='batch_size', action='store', type=int, default=50,  help='define the batch size')
-args = parser.parse_args()
-
 sess = tf.InteractiveSession()
 dbm = Dbmanager()
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 logs_path = 'Logs/'
 
@@ -83,7 +84,7 @@ for i in range(args.iterations):
     #train_accuracy = accuracy.eval(feed_dict={x:batch[0], y_: batch[1], keep_prob: 1.0})
     print("step %d"%(i))
   train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: args.keep_prob})
-eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
 end_time = time.time() - start_time
 dbm.new_row(__file__, eval_result, end_time)
 #print("test accuracy %g"%accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
