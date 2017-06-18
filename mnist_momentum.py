@@ -16,6 +16,8 @@ parser.add_argument('-b', dest='batch_size', action='store', type=int, default=5
 parser.add_argument('-l', dest='starter_learning_rate', action='store', type=float, default=0.01, help='define the starter learning rate for momentum')
 parser.add_argument('-n', dest='nesterov', action='store', type=int, default=0, help='use nesterov')
 parser.add_argument('-m', dest='momentum', action='store', type=float, default=0.96, help='set momentum value')
+parser.add_argument('-r', dest='run_number', action='store', type=int, default=0,  help='define run number')
+
 args = parser.parse_args()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 logs_path = 'Logs/momentum/'
@@ -36,7 +38,7 @@ with tf.name_scope('weight'):
 with tf.name_scope('biases'):
 	b = tf.Variable(tf.zeros([10]), name='Bias') #bias same
 
-with tf.name_scope('Softmax'):
+with tf.name_scope('Model'):
 	y = tf.matmul(x, W) + b # regression
 
 #define our loss function (here cross entropy)
@@ -55,15 +57,15 @@ tf.summary.scalar("cost", cross_entropy)
 tf.summary.scalar("accuracy", accuracy)
 
 summary_op = tf.summary.merge_all()
-train_writer = tf.summary.FileWriter(logs_path + '/train', sess.graph)
+train_writer = tf.summary.FileWriter(logs_path + '/' + str(args.run_number), sess.graph)
 
 sess.run(tf.global_variables_initializer())
-writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph())  
+#writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph())  
 #writer = tf.summary.FileWriter(logs_path, sess.graph)  
 for i in range(args.iterations):
 	batch = mnist.train.next_batch(args.batch_size) #take batch of 100 exemples 
 	_, summary = sess.run([train_step, summary_op], feed_dict={x: batch[0], y_: batch[1]})
-	train_step.run(feed_dict={x: batch[0], y_: batch[1]}) #feed placeholder with data
+	#train_step.run(feed_dict={x: batch[0], y_: batch[1]}) #feed placeholder with data
 	train_writer.add_summary(summary, i)
 
 eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels})

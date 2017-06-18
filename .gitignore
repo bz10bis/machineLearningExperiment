@@ -1,1 +1,4 @@
 MNIST_data/
+Logs/
+__pycache__/
+ml_result.db
