@@ -9,6 +9,9 @@ from Dbmanager import Dbmanager
 import tensorflow as tf
 import os 
 import argparse
+import matplotlib.pyplot as plt
+import numpy as np
+import random as ran
 
 parser = argparse.ArgumentParser(description="Tweak hyper parameter for convnet")
 parser.add_argument('-i', dest='iterations', action='store', type=int,  default=1000, help='define number of iterations')
@@ -53,9 +56,11 @@ with tf.name_scope('train'):
 	#training the model
 	train_step = tf.train.MomentumOptimizer(args.starter_learning_rate, args.momentum, False, 'Momentum', use_nesterov ).minimize(cross_entropy)
 
+
 tf.summary.scalar("cost", cross_entropy)
 tf.summary.scalar("accuracy", accuracy)
-
+image_reshaped = tf.reshape(x, [-1, 28, 28, 1])
+tf.summary.image('inputs', image_reshaped, 10)
 summary_op = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(logs_path + '/' + str(args.run_number), sess.graph)
 
@@ -69,8 +74,32 @@ for i in range(args.iterations):
 	train_writer.add_summary(summary, i)
 
 eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+# print(sess.run(tf.argmax(y,1), feed_dict={x: mnist.test.images}))
+# print(tf.argmax(mnist.test.labels,1))
 end_time = time.time() - start_time
 dbm.new_row(__file__, eval_result, end_time)
+for i in range(10):
+    plt.subplot(2, 5, i+1)
+    weight = sess.run(W)[:,i]
+    plt.title(i)
+    plt.imshow(weight.reshape([28,28]), cmap=plt.get_cmap('seismic'))
+    frame1 = plt.gca()
+    frame1.axes.get_xaxis().set_visible(False)
+    frame1.axes.get_yaxis().set_visible(False)
+plt.show()
 
+def display_compare(num):
+    x_train = mnist.test.images[num,:].reshape(1,784)
+    y_train = mnist.test.labels[num,:]
+    label = y_train.argmax()
+    prediction = sess.run(y, feed_dict={x: x_train}).argmax()
+    plt.title('Prediction: %d Label: %d' % (prediction, label))
+    plt.imshow(x_train.reshape([28,28]), cmap=plt.get_cmap('gray_r'))
+    plt.show()
 
-
+# # display_compare(ran.randint(0, 5000))
+# #display_compare(2)
+# res = correct_prediction.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+# for i in range(5000):
+# 	if(res[i] == False):
+# 		display_compare(i)
