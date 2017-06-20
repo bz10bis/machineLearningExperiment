@@ -8,6 +8,7 @@ from Dbmanager import Dbmanager
 
 import tensorflow as tf
 import os 
+import io
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,6 +27,21 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 logs_path = 'Logs/momentum/'
 sess = tf.InteractiveSession()
 dbm = Dbmanager()
+
+def get_heatmap():
+	for i in range(10):
+		plt.subplot(2, 5, i+1)
+		weight = sess.run(W)[:,i]
+		buf = io.BytesIO()
+		plt.figure
+		plt.title(i)
+		plt.imshow(weight.reshape([28,28]), cmap=plt.get_cmap('seismic'))
+		frame1 = plt.gca()
+		frame1.axes.get_xaxis().set_visible(False)
+		frame1.axes.get_yaxis().set_visible(False)
+	plt.savefig(buf, format='png')
+	buf.seek(0)
+	return buf
 
 use_nesterov = False
 if(args.nesterov==1):
@@ -56,11 +72,10 @@ with tf.name_scope('train'):
 	#training the model
 	train_step = tf.train.MomentumOptimizer(args.starter_learning_rate, args.momentum, False, 'Momentum', use_nesterov ).minimize(cross_entropy)
 
-
 tf.summary.scalar("cost", cross_entropy)
 tf.summary.scalar("accuracy", accuracy)
-image_reshaped = tf.reshape(x, [-1, 28, 28, 1])
-tf.summary.image('inputs', image_reshaped, 10)
+# image_reshaped = tf.reshape(x, [-1, 28, 28, 1])
+# tf.summary.image('inputs', image_reshaped, 10)
 summary_op = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter(logs_path + '/' + str(args.run_number), sess.graph)
 
@@ -69,7 +84,17 @@ sess.run(tf.global_variables_initializer())
 #writer = tf.summary.FileWriter(logs_path, sess.graph)  
 for i in range(args.iterations):
 	batch = mnist.train.next_batch(args.batch_size) #take batch of 100 exemples 
-	_, summary = sess.run([train_step, summary_op], feed_dict={x: batch[0], y_: batch[1]})
+	run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+	run_metadata = tf.RunMetadata()
+	_, summary = sess.run([train_step, summary_op], feed_dict={x: batch[0], y_: batch[1]}, options=run_options, run_metadata=run_metadata)
+	if i % 100 == 0:		
+		plot_buf = get_heatmap()
+		image = tf.image.decode_png(plot_buf.getvalue(), channels=4)
+		image = tf.expand_dims(image, 0)
+		predict_summary = tf.summary.image("plot", image)
+		new_summary = sess.run(predict_summary,options=run_options, run_metadata=run_metadata)
+		train_writer.add_run_metadata(run_metadata, 'step%d' % i)
+		train_writer.add_summary(new_summary, i)
 	#train_step.run(feed_dict={x: batch[0], y_: batch[1]}) #feed placeholder with data
 	train_writer.add_summary(summary, i)
 
@@ -78,27 +103,51 @@ eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labe
 # print(tf.argmax(mnist.test.labels,1))
 end_time = time.time() - start_time
 dbm.new_row(__file__, eval_result, end_time)
-for i in range(10):
-    plt.subplot(2, 5, i+1)
-    weight = sess.run(W)[:,i]
-    plt.title(i)
-    plt.imshow(weight.reshape([28,28]), cmap=plt.get_cmap('seismic'))
-    frame1 = plt.gca()
-    frame1.axes.get_xaxis().set_visible(False)
-    frame1.axes.get_yaxis().set_visible(False)
-plt.show()
+# for i in range(10):
+#     plt.subplot(2, 5, i+1)
+#     weight = sess.run(W)[:,i]
+#     plt.title(i)
+#     plt.imshow(weight.reshape([28,28]), cmap=plt.get_cmap('seismic'))
+#     frame1 = plt.gca()
+#     frame1.axes.get_xaxis().set_visible(False)
+#     frame1.axes.get_yaxis().set_visible(False)
+# plt.show()
+
+
 
 def display_compare(num):
     x_train = mnist.test.images[num,:].reshape(1,784)
     y_train = mnist.test.labels[num,:]
     label = y_train.argmax()
     prediction = sess.run(y, feed_dict={x: x_train}).argmax()
+    buf = io.BytesIO()
+    plt.figure()
     plt.title('Prediction: %d Label: %d' % (prediction, label))
     plt.imshow(x_train.reshape([28,28]), cmap=plt.get_cmap('gray_r'))
-    plt.show()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    return buf
+
+# plot_buf = get_heatmap()
+# image = tf.image.decode_png(plot_buf.getvalue(), channels=4)
+# image = tf.expand_dims(image, 0)
+# predict_summary = tf.summary.image("plot", image)
+# new_summary = sess.run(predict_summary)
+# writer_img = tf.summary.FileWriter('Logs/momentum/images', sess.graph)
+# writer_img.add_summary(new_summary)
+# writer_img.close()
+
+# def display_compare(num):
+#     x_train = mnist.test.images[num,:].reshape(1,784)
+#     y_train = mnist.test.labels[num,:]
+#     label = y_train.argmax()
+#     prediction = sess.run(y, feed_dict={x: x_train}).argmax()
+#     plt.title('Prediction: %d Label: %d' % (prediction, label))
+#     plt.imshow(x_train.reshape([28,28]), cmap=plt.get_cmap('gray_r'))
+#     plt.show()
 
 # # display_compare(ran.randint(0, 5000))
-# #display_compare(2)
+# display_compare(2)
 # res = correct_prediction.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels})
 # for i in range(5000):
 # 	if(res[i] == False):
