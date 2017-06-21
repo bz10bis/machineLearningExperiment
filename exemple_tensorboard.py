@@ -14,14 +14,13 @@
 # ==============================================================================
 import os
 import os.path
-import shutil
 import tensorflow as tf
 
-LOGDIR = "/tmp/mnist_tutorial/"
+LOGDIR = "Logs/exemple/"
 LABELS = os.path.join(os.getcwd(), "labels_1024.tsv")
 SPRITES = os.path.join(os.getcwd(), "sprite_1024.png")
 ### MNIST EMBEDDINGS ###
-mnist = tf.contrib.learn.datasets.mnist.read_data_sets(train_dir=LOGDIR + "data", one_hot=True)
+mnist = tf.contrib.learn.datasets.mnist.read_data_sets(train_dir="MNIST_data/", one_hot=True)
 ### Get a sprite and labels file for the embedding projector ###
 
 if not (os.path.isfile(LABELS) and os.path.isfile(SPRITES)):
@@ -141,11 +140,11 @@ def make_hparam_string(learning_rate, use_two_fc, use_two_conv):
 
 def main():
   # You can try adding some more learning rates
-  for learning_rate in [1E-3, 1E-4]:
+  for learning_rate in [1E-3]:
 
     # Include "False" as a value to try different model architectures
     for use_two_fc in [True]:
-      for use_two_conv in [False, True]:
+      for use_two_conv in [True]:
         # Construct a hyperparameter string for each one (example: "lr_1E-3,fc=2,conv=2")
         hparam = make_hparam_string(learning_rate, use_two_fc, use_two_conv)
         print('Starting run for %s' % hparam)
