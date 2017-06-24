@@ -8,15 +8,10 @@ import argparse
 import tensorflow as tf
 
 from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+mnist = input_data.read_data_sets("MNIST-data/", one_hot=True)
 
 LABELS = os.path.join(os.getcwd(), "labels_1024.tsv")
 SPRITES = os.path.join(os.getcwd(), "sprite_1024.png")
-if not (os.path.isfile(LABELS) and os.path.isfile(SPRITES)):
-  print("Necessary data files were not found. Run this command from inside the "
-    "repo provided at "
-    "https://github.com/dandelionmane/tf-dev-summit-tensorboard-tutorial.")
-  exit(1)
 
 def convolution_layer(layer_input, input_size, output_size, name="convolutional"):
 	with tf.name_scope(name):
@@ -40,7 +35,7 @@ def dense_layer(layer_input, input_size, output_size, name="dense"):
 		return activation_function
 	
 
-def model(learning_rate, parameters):
+def model(learning_rate, parameters, iterations):
 	tf.reset_default_graph()
 	sess = tf.Session()
 	x = tf.placeholder(tf.float32, shape=[None, 784], name="X")
@@ -80,7 +75,7 @@ def model(learning_rate, parameters):
 	embedding_config.metadata_path = LABELS
 	embedding_config.sprite.single_image_dim.extend([28, 28])
 	tf.contrib.tensorboard.plugins.projector.visualize_embeddings(writer, config)
-	for i in range(2001):
+	for i in range(iterations):
 		batch = mnist.train.next_batch(100)
 		if i % 5 == 0:
 			[train_accuracy, summary] = sess.run([accuracy, summary_op], feed_dict={x: batch[0], y: batch[1]})
@@ -95,22 +90,20 @@ def parameters_to_string(learning_rate):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Tweak hyper parameter for convnet")
-	parser.add_argument('-i', dest='iterations', action='store', type=int,  default=1000, help='define number of iterations')
+	parser.add_argument('-i', dest='iterations', action='store', type=int,  default=1001, help='define number of iterations')
 	parser.add_argument('-b', dest='batch_size', action='store', type=int, default=50,  help='define the batch size')
-	parser.add_argument('-l', dest='starter_learning_rate', action='store', type=float, default=0.01, help='define the starter learning rate for momentum')
-	parser.add_argument('-n', dest='nesterov', action='store', type=int, default=0, help='use nesterov')
-	parser.add_argument('-m', dest='momentum', action='store', type=float, default=0.96, help='set momentum value')
+	parser.add_argument('-l', dest='learning_rate', action='store', type=float, default=0.01, help='define the learning rate')
 	parser.add_argument('-r', dest='run_number', action='store', type=int, default=0,  help='define run number')
 	args = parser.parse_args()
 
 	os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-	logs_path = 'Logs/momentum2/'
+	logs_path = 'Logs/convnet/' + str(args.run_number) + '/'
 
 	start_time = time.time()
 
 	for learning_rate in [1E-3, 1E-4]:
 	#for learning_rate in [0.01]:
 		parameters = parameters_to_string(learning_rate)
-		model(learning_rate, parameters)
+		model(learning_rate, parameters, args.iterations)
 	end_time = time.time() - start_time 
 	print("Learning Finished in: " + str(end_time))
