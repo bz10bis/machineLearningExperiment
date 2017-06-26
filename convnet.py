@@ -57,6 +57,11 @@ def model(learning_rate, parameters, iterations):
 		tf.summary.scalar("cross_entropy", cross_entropy)
 	with tf.name_scope("train"):
 		train_step = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy)
+		#train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy)
+		#train_step = tf.train.AdadeltaOptimizer(learning_rate,0.95,1e-08).minimize(cross_entropy)
+		#train_step = tf.train.AdagradOptimizer(learning_rate).minimize(cross_entropy)
+		#train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, False, 'Momentum', True ).minimize(cross_entropy)
+		# train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, False, 'Momentum', False).minimize(cross_entropy)
 	with tf.name_scope("accuracy"):
 		correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -83,7 +88,9 @@ def model(learning_rate, parameters, iterations):
 		if i % 500 == 0:
 			sess.run(assignement, feed_dict={x: mnist.test.images[:1024], y: mnist.test.labels[:1024]})
 			saver.save(sess, os.path.join(logs_path, "model.ckpt"), i)
+			print("step: " + str(i))	
 		sess.run(train_step, feed_dict={x: batch[0], y: batch[1]})
+	print("test accuracy %g"%accuracy.eval(feed_dict={x:mnist.validation.images, y: mnist.validation.labels}, session=sess))
 
 def parameters_to_string(learning_rate):
 	return "lr_%.0E" % (learning_rate)
@@ -101,8 +108,9 @@ if __name__ == '__main__':
 
 	start_time = time.time()
 
-	for learning_rate in [1E-3, 1E-4]:
-	#for learning_rate in [0.01]:
+	#for learning_rate in [1E-1, 1E-2, 1E-3, 1E-4]:
+	for learning_rate in [0.1, 0.01, 0.001, 0.0001]:
+	#for learning_rate in [0.001, 0.0001]:
 		parameters = parameters_to_string(learning_rate)
 		model(learning_rate, parameters, args.iterations)
 	end_time = time.time() - start_time 

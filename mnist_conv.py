@@ -2,8 +2,8 @@ import argparse
 parser = argparse.ArgumentParser(description="Tweak hyper parameter for convnet")
 parser.add_argument('-l', dest='learning_rate', action='store', type=float, default=0.0001, help='define learning rate')
 parser.add_argument('-k', dest='keep_prob', action='store', type=float, default=0.5, help='define keep prob for dropout')
-parser.add_argument('-i', dest='iterations', action='store', type=int, default=1000, help='define number of iteration')
-parser.add_argument('-b', dest='batch_size', action='store', type=int, default=50,  help='define the batch size')
+parser.add_argument('-i', dest='iterations', action='store', type=int, default=2000, help='define number of iteration')
+parser.add_argument('-b', dest='batch_size', action='store', type=int, default=100,  help='define the batch size')
 args = parser.parse_args()
 
 import time
@@ -84,7 +84,26 @@ for i in range(args.iterations):
     #train_accuracy = accuracy.eval(feed_dict={x:batch[0], y_: batch[1], keep_prob: 1.0})
     print("step %d"%(i))
   train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: args.keep_prob})
-eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
+
+# ============ Accuracy Batch =============================
+
+batch_test_size = 100
+number_of_batch = int(mnist.test.num_examples / batch_test_size)
+test_accuracy = 0
+for i in range(number_of_batch):
+  batch_test = mnist.test.next_batch(batch_test_size)
+  test_accuracy += accuracy.eval(feed_dict={x: batch_test[0], y_: batch_test[1], keep_prob: 1.0})
+test_accuracy /= number_of_batch
+print("test accuracy %g"%test_accuracy)
+
+
+# ==================== Other Accuracy =================
+# batch_testx, batch_testy = mnist.test.next_batch(100)
+# with tf.device('/cpu:0'):
+#   eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
+#eval_result = accuracy.eval(feed_dict={x: batch_test[0], y_: batch_test[1], keep_prob: 1.0})
+# print("test accuracy %g"%accuracy.eval(feed_dict={x:batch_testx, y_: batch_testy, keep_prob: 1.0}))
 end_time = time.time() - start_time
-dbm.new_row(__file__, eval_result, end_time)
-#print("test accuracy %g"%accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
+#dbm.new_row(__file__, eval_result, end_time)
+#print("test accuracy : %.4f"  % eval_result)
+

@@ -14,17 +14,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random as ran
 
-parser = argparse.ArgumentParser(description="Tweak hyper parameter for convnet")
+parser = argparse.ArgumentParser(description="Tweak hyper parameter for perceptron")
 parser.add_argument('-i', dest='iterations', action='store', type=int,  default=1000, help='define number of iterations')
-parser.add_argument('-b', dest='batch_size', action='store', type=int, default=50,  help='define the batch size')
-parser.add_argument('-l', dest='starter_learning_rate', action='store', type=float, default=0.01, help='define the starter learning rate for momentum')
-parser.add_argument('-n', dest='nesterov', action='store', type=int, default=0, help='use nesterov')
-parser.add_argument('-m', dest='momentum', action='store', type=float, default=0.96, help='set momentum value')
+parser.add_argument('-b', dest='batch_size', action='store', type=int, default=100,  help='define the batch size')
+parser.add_argument('-l', dest='learning_rate', action='store', type=float, default=0.01, help='define the starter learning rate for momentum')
 parser.add_argument('-r', dest='run_number', action='store', type=int, default=0,  help='define run number')
 
 args = parser.parse_args()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-logs_path = 'Logs/momentum/'
+#logs_path = 'Logs/perceptron/'
+logs_path = 'Logs/perceptron/' + str(args.run_number) + '/'
 sess = tf.InteractiveSession()
 dbm = Dbmanager()
 
@@ -43,9 +42,9 @@ def get_heatmap():
 	buf.seek(0)
 	return buf
 
-use_nesterov = False
-if(args.nesterov==1):
-	use_nesterov = True
+# use_nesterov = False
+# if(args.nesterov==1):
+# 	use_nesterov = True
 
 with tf.name_scope('input'):
 	x = tf.placeholder(tf.float32, [None, 784], name='inputs') #inputs
@@ -70,7 +69,11 @@ with tf.name_scope('accuracy'):
 
 with tf.name_scope('train'):
 	#training the model
-	train_step = tf.train.MomentumOptimizer(args.starter_learning_rate, args.momentum, False, 'Momentum', use_nesterov ).minimize(cross_entropy)
+	train_step = tf.train.AdamOptimizer(args.learning_rate).minimize(cross_entropy)
+	#train_step = tf.train.GradientDescentOptimizer(args.learning_rate).minimize(cross_entropy)
+	#train_step = tf.train.AdadeltaOptimizer(args.learning_rate,0.95,1e-08).minimize(cross_entropy)
+	#train_step = tf.train.AdagradOptimizer(args.learning_rate).minimize(cross_entropy)
+	#train_step = tf.train.MomentumOptimizer(args.learning_rate, 0.9, False, 'Momentum', True ).minimize(cross_entropy)
 
 tf.summary.scalar("cost", cross_entropy)
 tf.summary.scalar("accuracy", accuracy)
@@ -98,11 +101,12 @@ for i in range(args.iterations):
 	#train_step.run(feed_dict={x: batch[0], y_: batch[1]}) #feed placeholder with data
 	train_writer.add_summary(summary, i)
 
-eval_result = accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+print("test accuracy %g"%accuracy.eval(feed_dict={x:mnist.validation.images, y_: mnist.validation.labels}, session=sess))
 # print(sess.run(tf.argmax(y,1), feed_dict={x: mnist.test.images}))
 # print(tf.argmax(mnist.test.labels,1))
 end_time = time.time() - start_time
-dbm.new_row(__file__, eval_result, end_time)
+print("End in :" + str(end_time))
+#dbm.new_row(__file__, eval_result, end_time)
 # for i in range(10):
 #     plt.subplot(2, 5, i+1)
 #     weight = sess.run(W)[:,i]
